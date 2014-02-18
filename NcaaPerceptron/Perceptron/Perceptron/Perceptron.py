@@ -10,9 +10,13 @@
 
 from numpy import *
 
-class pcn:
+class Perceptron:
 	""" A basic Perceptron"""
 	
+    # the constructor...
+    #
+    # inputs  [in] - 
+    # targets [in] - 
 	def __init__(self, inputs, targets):
 		""" Constructor """
 
@@ -32,7 +36,13 @@ class pcn:
 		# Initialise network
 		self.weights = random.rand(self.nIn+1, self.nOut) * 0.1 - 0.05
 
-	def pcntrain(self, inputs, targets, eta, nIterations):
+    # trains the model based on the inputs and targets
+    #
+    # inputs        [in] - 
+    # targets       [in] - 
+    # eta           [in] - 
+    # numIterations [in] - 
+	def Train(self, inputs, targets, eta, numIterations):
 		""" Train the thing """
 
 		# Add the inputs that match the bias node
@@ -41,8 +51,8 @@ class pcn:
 		# Training
 		change = range(self.nData)
 
-		for n in range(nIterations):
-			self.outputs = self.pcnfwd(inputs);
+		for n in range(numIterations):
+			self.outputs = self.Forward(inputs);
 			self.weights += eta * dot(transpose(inputs), targets-self.outputs)
 		
 			# Randomise order of inputs
@@ -52,7 +62,10 @@ class pcn:
 			
 		#return self.weights
 
-	def pcnfwd(self, inputs):
+    # gives whether an neuron should fire based on the inputs?
+    #
+    # inputs  [in] - 
+	def Forward(self, inputs):
 		""" Run the network forward """
 
 		outputs = dot(inputs, self.weights)
@@ -60,7 +73,11 @@ class pcn:
 		# Threshold the outputs
 		return where(outputs > 0, 1, 0)
 
-	def confmat(self, inputs, targets):
+    # creates the confusion matrix
+    #
+    # inputs  [in] - 
+    # targets [in] - 
+	def ConfusionMatrix(self, inputs, targets):
 		"""Confusion matrix"""
 
 		# Add the inputs that match the bias node
@@ -86,16 +103,26 @@ class pcn:
 		print cm
 		print trace(cm) / sum(cm)
 		
-	def logic(self):
+    # run the training and tests for AND and XOR logic
+    #
+    # inputs  [in] - 
+    # targets [in] - 
+	def RunLogic(self):
 		""" Run AND and XOR logic functions"""
 
 		a = array([[0, 0, 0], [0, 1, 0], [1, 0, 0], [1, 1, 1]])
 		b = array([[0, 0, 0], [0, 1, 1], [1, 0, 1], [1, 1, 0]])
 
-		p = self.pcn(a[:, 0:2], a[:, 2:])
-		p.pcntrain(a[:, 0:2], a[:, 2:], 0.25, 10)
-		p.confmat(a[:, 0:2], a[:, 2:])
+		p = self.Perceptron(a[:, 0:2], a[:, 2:])
+		p.Train(a[:, 0:2], a[:, 2:], 0.25, 10)
+		p.ConfusionMatrix(a[:, 0:2], a[:, 2:])
 
-		q = self.pcn(a[:, 0:2], b[:, 2:])
-		q.pcntrain(a[:, 0:2], b[:, 2:], 0.25, 10)
-		q.confmat(a[:, 0:2], b[:, 2:])
+		q = self.Perceptron(a[:, 0:2], b[:, 2:])
+		q.Train(a[:, 0:2], b[:, 2:], 0.25, 10)
+		q.ConfusionMatrix(a[:, 0:2], b[:, 2:])
+
+
+# main() code goes here
+pcn = Perceptron(needInput, needTarget)
+
+pcn.RunLogic()
