@@ -14,10 +14,10 @@
 from numpy import *
 
 class Perceptron:
-    # the constructor...
+    # the constructor to initialize the weights and set up the perceptron
     #
-    # inputs  [in] - 
-    # targets [in] - 
+    # inputs  [in] - an array (matrix) of all the input data; each row is an instance of the features
+    # targets [in] - the results that the perceptron should get
     def __init__(self, inputs, targets):
         # Set up network size
         if ndim(inputs) > 1:
@@ -37,11 +37,11 @@ class Perceptron:
 
     # trains the model based on the inputs and targets
     #
-    # inputs        [in] - 
-    # targets       [in] - 
+    # inputs        [in] - an array (matrix) of all the input data; each row is an instance of the features
+    # targets       [in] - the results that the perceptron should get
     # eta           [in] - 
-    # numIterations [in] - 
-    def Train(self, inputs, targets, eta, numIterations):
+    # numIterations [in] - number of times to train the model on inputs
+    def Train(self, inputs, targets, learnRate, numIterations):
         # Add the inputs that match the bias node
         inputs = concatenate(( inputs, -ones((self.nData, 1)) ), axis=1)
 
@@ -50,7 +50,7 @@ class Perceptron:
 
         for n in range(numIterations):
             self.outputs = self.Forward(inputs);
-            self.weights += eta * dot(transpose(inputs), targets-self.outputs)
+            self.weights += learnRate * dot(transpose(inputs), targets-self.outputs)
         
             # Randomise order of inputs
             random.shuffle(change)
@@ -59,19 +59,19 @@ class Perceptron:
             
         #return self.weights
 
-    # gives whether an neuron should fire based on the inputs?
+    # calculates if the neuron would fire based on the inputs and the previously calculated weights
     #
-    # inputs  [in] - 
+    # inputs  [in] - an array (matrix) of all the input data; each row is an instance of the features
     def Forward(self, inputs):
         outputs = dot(inputs, self.weights)
 
         # Threshold the outputs
         return where(outputs > 0, 1, 0)
 
-    # creates the confusion matrix
+    # creates the confusion matrix based on the testing data
     #
-    # inputs  [in] - 
-    # targets [in] - 
+    # inputs  [in] - an array (matrix) of all the testing data; each row is an instance of the features
+    # targets [in] - the results that the perceptron should get
     def ConfusionMatrix(self, inputs, targets):
         # Add the inputs that match the bias node
         inputs = concatenate(( inputs, -ones((self.nData, 1)) ), axis=1)
@@ -113,4 +113,3 @@ q.ConfusionMatrix(a[:, 0:2], b[:, 2:])
 
 
 # main() code goes here
-pcn = Perceptron(needInputs, needTargets)
