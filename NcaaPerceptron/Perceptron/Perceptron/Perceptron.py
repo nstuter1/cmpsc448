@@ -12,6 +12,7 @@
 # Date:        February 2014
 
 from numpy import *
+import csv
 
 class Perceptron:
     # the constructor to initialize the weights and set up the perceptron
@@ -113,3 +114,17 @@ q.ConfusionMatrix(a[:, 0:2], b[:, 2:])
 
 
 # main() code goes here
+input_file = csv.DictReader(open("NCAAdata.csv"))
+NCAAdata   = None
+
+# create an array (matrix) from the data in input_file
+for row in input_file:
+    newRow = array([[float(row["Winrate"]), int(row["Seed"]), float(row["Winrate2"]), int(row["Seed2"]), int(row["Result"])]])
+    if NCAAdata is None:
+        NCAAdata = newRow
+    else:
+        NCAAdata = concatenate((NCAAdata, newRow), axis=0)
+
+pcn = Perceptron(NCAAdata[:, 0:5], NCAAdata[:, 5:])
+pcn.Train(NCAAdata[:, 0:5], NCAAdata[:, 5:], 0.25, 10)
+#pcn.ConfusionMatrix(NCAAdata[:, 0:5], NCAAdata[:, 5:])
