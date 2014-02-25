@@ -114,31 +114,35 @@ q.ConfusionMatrix(a[:, 0:2], b[:, 2:])
 """
 
 
+#######################
 # main() code goes here
+#######################
 input_file = csv.DictReader(open("NCAAdata.csv"))
 NCAAdata   = None
 testData   = None
 
 # create an array (matrix) from the data in input_file
 for row in input_file:
-    swapcolumns = randint(0, 1)      # 0 means leave the columns in order; 1 means swap first two columns with next two for randomization
+    swapColumns = randint(0, 1)   # 0 means leave the columns in order; 1 means swap first two columns with next two for randomization
 
-    if not swapcolumns:
+    # swap columns based on swapColumns
+    if not swapColumns:
         newRow = array([[float(row["Winrate"]), int(row["Seed"]), float(row["Winrate2"]), int(row["Seed2"]), 1]])
     else:
         newRow = array([[float(row["Winrate2"]), int(row["Seed2"]), float(row["Winrate"]), int(row["Seed"]), 0]])
 
-    if row["season"] != "R":
+    if row["season"] != "R":           # training data
         if NCAAdata is None:
             NCAAdata = newRow
         else:
             NCAAdata = concatenate((NCAAdata, newRow), axis=0)
-    else:
+    else:                              # testing data
         if testData is None:
             testData = newRow
         else:
             testData = concatenate((testData, newRow), axis=0)
 
+# initialize, train, then test the data
 pcn = Perceptron(NCAAdata[:, 0:5], NCAAdata[:, 4:])
 pcn.Train(NCAAdata[:, 0:5], NCAAdata[:, 4:], 0.25, 10)
 pcn.ConfusionMatrix(testData[:, 0:5], testData[:, 4:])
