@@ -36,7 +36,6 @@ class Perceptron:
     
         # Initialise network
         self.weights = random.rand(self.nIn+1, self.nOut) * 0.1 - 0.05
-        None
 
     # trains the model based on the inputs and targets
     #
