@@ -11,6 +11,7 @@
 # Class:       CMPSC 448 (Machine Learning)
 # Date:        February 2014
 
+from random import randint
 from numpy import *
 import csv
 
@@ -35,12 +36,13 @@ class Perceptron:
     
         # Initialise network
         self.weights = random.rand(self.nIn+1, self.nOut) * 0.1 - 0.05
+        None
 
     # trains the model based on the inputs and targets
     #
     # inputs        [in] - an array (matrix) of all the input data; each row is an instance of the features
     # targets       [in] - the results that the perceptron should get
-    # eta           [in] - 
+    # learnRate     [in] - the degree which weights should change on training
     # numIterations [in] - number of times to train the model on inputs
     def Train(self, inputs, targets, learnRate, numIterations):
         # Add the inputs that match the bias node
@@ -75,7 +77,7 @@ class Perceptron:
     # targets [in] - the results that the perceptron should get
     def ConfusionMatrix(self, inputs, targets):
         # Add the inputs that match the bias node
-        inputs = concatenate(( inputs, -ones((self.nData, 1)) ), axis=1)
+        inputs = concatenate(( inputs, -ones((shape(inputs)[0], 1)) ), axis=1)
         
         outputs = dot(inputs, self.weights)
     
@@ -116,15 +118,28 @@ q.ConfusionMatrix(a[:, 0:2], b[:, 2:])
 # main() code goes here
 input_file = csv.DictReader(open("NCAAdata.csv"))
 NCAAdata   = None
+testData   = None
 
 # create an array (matrix) from the data in input_file
 for row in input_file:
-    newRow = array([[float(row["Winrate"]), int(row["Seed"]), float(row["Winrate2"]), int(row["Seed2"]), int(row["Result"])]])
-    if NCAAdata is None:
-        NCAAdata = newRow
-    else:
-        NCAAdata = concatenate((NCAAdata, newRow), axis=0)
+    swapcolumns = randint(0, 1)      # 0 means leave the columns in order; 1 means swap first two columns with next two for randomization
 
-pcn = Perceptron(NCAAdata[:, 0:5], NCAAdata[:, 5:])
-pcn.Train(NCAAdata[:, 0:5], NCAAdata[:, 5:], 0.25, 10)
-#pcn.ConfusionMatrix(NCAAdata[:, 0:5], NCAAdata[:, 5:])
+    if not swapcolumns:
+        newRow = array([[float(row["Winrate"]), int(row["Seed"]), float(row["Winrate2"]), int(row["Seed2"]), 1]])
+    else:
+        newRow = array([[float(row["Winrate2"]), int(row["Seed2"]), float(row["Winrate"]), int(row["Seed"]), 0]])
+
+    if row["season"] != "R":
+        if NCAAdata is None:
+            NCAAdata = newRow
+        else:
+            NCAAdata = concatenate((NCAAdata, newRow), axis=0)
+    else:
+        if testData is None:
+            testData = newRow
+        else:
+            testData = concatenate((testData, newRow), axis=0)
+
+pcn = Perceptron(NCAAdata[:, 0:5], NCAAdata[:, 4:])
+pcn.Train(NCAAdata[:, 0:5], NCAAdata[:, 4:], 0.25, 10)
+pcn.ConfusionMatrix(testData[:, 0:5], testData[:, 4:])
