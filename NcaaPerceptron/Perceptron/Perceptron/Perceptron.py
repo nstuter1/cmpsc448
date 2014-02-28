@@ -143,6 +143,6 @@ for row in input_file:
             testData = concatenate((testData, newRow), axis=0)
 
 # initialize, train, then test the data
-pcn = Perceptron(NCAAdata[:, 0:5], NCAAdata[:, 4:])
-pcn.Train(NCAAdata[:, 0:5], NCAAdata[:, 4:], 0.25, 10)
-pcn.ConfusionMatrix(testData[:, 0:5], testData[:, 4:])
+pcn = Perceptron(NCAAdata[:, 0:4], NCAAdata[:, 4:])
+pcn.Train(NCAAdata[:, 0:4], NCAAdata[:, 4:], 0.25, 10)
+pcn.ConfusionMatrix(testData[:, 0:4], testData[:, 4:])
