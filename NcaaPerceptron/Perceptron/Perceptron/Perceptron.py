@@ -99,6 +99,40 @@ class Perceptron:
         print trace(cm) / sum(cm)
         
 
+# read in the data from file and separate it into the training data and testing data
+#
+# file [in] - a string specifying the .csv file to read the data from
+#
+# return - a tuple where the first element is a matrix of the training data, and the second element is a matrix of the testing data
+def GetData(file):
+    input_file = csv.DictReader(open(file))
+    trainData  = None
+    testData   = None
+
+    # create an array (matrix) from the data in input_file
+    for row in input_file:
+        swapColumns = randint(0, 1)   # 0 means leave the columns in order; 1 means swap first two columns with next two for randomization
+
+        # swap columns based on swapColumns
+        if not swapColumns:
+            newRow = array([[float(row["Winrate"]), int(row["Seed"]), float(row["Winrate2"]), int(row["Seed2"]), 1]])
+        else:
+            newRow = array([[float(row["Winrate2"]), int(row["Seed2"]), float(row["Winrate"]), int(row["Seed"]), 0]])
+
+        if row["season"] != "R":           # training data
+            if trainData is None:
+                trainData = newRow
+            else:
+                trainData = concatenate((trainData, newRow), axis=0)
+        else:                              # testing data
+            if testData is None:
+                testData = newRow
+            else:
+                testData = concatenate((testData, newRow), axis=0)
+
+    return (trainData, testData)
+
+
 # Example with AND and XOR logic functions
 """
 a = array([[0, 0, 0], [0, 1, 0], [1, 0, 0], [1, 1, 1]])
@@ -117,30 +151,8 @@ q.ConfusionMatrix(a[:, 0:2], b[:, 2:])
 #######################
 # main() code goes here
 #######################
-input_file = csv.DictReader(open("NCAAdata.csv"))
-NCAAdata   = None
-testData   = None
 
-# create an array (matrix) from the data in input_file
-for row in input_file:
-    swapColumns = randint(0, 1)   # 0 means leave the columns in order; 1 means swap first two columns with next two for randomization
-
-    # swap columns based on swapColumns
-    if not swapColumns:
-        newRow = array([[float(row["Winrate"]), int(row["Seed"]), float(row["Winrate2"]), int(row["Seed2"]), 1]])
-    else:
-        newRow = array([[float(row["Winrate2"]), int(row["Seed2"]), float(row["Winrate"]), int(row["Seed"]), 0]])
-
-    if row["season"] != "R":           # training data
-        if NCAAdata is None:
-            NCAAdata = newRow
-        else:
-            NCAAdata = concatenate((NCAAdata, newRow), axis=0)
-    else:                              # testing data
-        if testData is None:
-            testData = newRow
-        else:
-            testData = concatenate((testData, newRow), axis=0)
+NCAAdata, testData = GetData("NCAAdata.csv")
 
 # initialize, train, then test the data
 pcn = Perceptron(NCAAdata[:, 0:4], NCAAdata[:, 4:])
