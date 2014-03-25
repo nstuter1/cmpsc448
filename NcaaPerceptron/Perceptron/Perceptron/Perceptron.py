@@ -39,7 +39,7 @@ class Perceptron:
 
     # trains the model based on the inputs and targets
     #
-    # inputs        [in] - an array (matrix) of all the input data; each row is an instance of the features
+    # inputs        [in] - an array (matrix) of all the input data; each row is an instance of features
     # targets       [in] - the results that the perceptron should get
     # learnRate     [in] - the degree which weights should change on training
     # numIterations [in] - number of times to train the model on inputs
@@ -95,42 +95,66 @@ class Perceptron:
             for j in range(nClasses):
                 cm[i, j] = sum(where(outputs == i, 1, 0) * where(targets == j, 1, 0))
 
+        print "Confusion Matrix:"
         print cm
-        print trace(cm) / sum(cm)
+        print "Error:"
+        print "{0}\n".format(trace(cm) / sum(cm))
+
+        return trace(cm) / sum(cm)
         
 
-# read in the data from file and separate it into the training data and testing data
+# read in the data from file and separate it into a dictionary of matrices of the data for each season
 #
 # file [in] - a string specifying the .csv file to read the data from
 #
-# return - a tuple where the first element is a matrix of the training data, and the second element is a matrix of the testing data
+# return - a dictionary of matrices of the data for each season, where the season letter is the key
 def GetData(file):
-    input_file = csv.DictReader(open(file))
-    trainData  = None
-    testData   = None
+    input_file = csv.DictReader(open(file))    # pointer to the open file
+    seasonData = dict()                        # the dictionary of season data that will be returned
 
-    # create an array (matrix) from the data in input_file
+    # add to seasonData from the data in input_file
     for row in input_file:
-        swapColumns = randint(0, 1)   # 0 means leave the columns in order; 1 means swap first two columns with next two for randomization
+        swapColumns = randint(0, 1)   # 0 means leave the columns in order; 1 means swap first two
+                                      #   columns with next two for randomization
 
         # swap columns based on swapColumns
         if not swapColumns:
-            newRow = array([[float(row["Winrate"]), int(row["Seed"]), float(row["Winrate2"]), int(row["Seed2"]), 1]])
+            newRow = array([[float(row["Winrate"]), int(row["Seed"]), float(row["Winrate2"]),
+                                                                           int(row["Seed2"]), 1]])
         else:
-            newRow = array([[float(row["Winrate2"]), int(row["Seed2"]), float(row["Winrate"]), int(row["Seed"]), 0]])
+            newRow = array([[float(row["Winrate2"]), int(row["Seed2"]), float(row["Winrate"]),
+                                                                             int(row["Seed"]), 0]])
 
-        if row["season"] != "R":           # training data
-            if trainData is None:
-                trainData = newRow
-            else:
-                trainData = concatenate((trainData, newRow), axis=0)
-        else:                              # testing data
-            if testData is None:
-                testData = newRow
-            else:
-                testData = concatenate((testData, newRow), axis=0)
+        # add newRow to seasonData based on the season the row pertains to
+        if row["season"] not in seasonData:
+            seasonData[row["season"]] = newRow
+        else:
+            seasonData[row["season"]] = concatenate((seasonData[row["season"]], newRow), axis=0)
 
-    return (trainData, testData)
+    return seasonData
+
+# gets the testing and training data, where testSeason is the season to use as the testing data, and
+#   the rest of the seasons are used for the training data
+#
+# data       [in] = dictionary of the data for each season, indexed by the season letter
+# testSeason [in] = char of the season to use as the testing data; key into data
+# 
+# return - a tuple where the first element is a matrix of the training data, and the second element is
+#            a matrix of the testing data
+def GetTrainAndTestData(data, testSeason):
+    trainData = None                # matrix of the seasons to train on
+    testData  = data[testSeason]    # matrix of the seasons to test on
+
+    # run through every key of data and concatenate the matrices of each season that isn't testSeason;
+    #   together, they make up the training data
+    for key in data:
+        if key != testSeason:            # key is not the testSeason
+            if trainData is None:        # trainData is empty
+                trainData = data[key]
+            else:                        # trainData already has some data so concatenate
+                trainData = concatenate((trainData, data[key]), axis=0)
+
+    return trainData, testData
 
 
 # Example with AND and XOR logic functions
@@ -152,9 +176,21 @@ q.ConfusionMatrix(a[:, 0:2], b[:, 2:])
 # main() code goes here
 #######################
 
-NCAAdata, testData = GetData("NCAAdata.csv")
+seasonData = GetData("NCAAdata.csv")     # dictionary indexed by season letter; each season is a matrix
+                                         #   of the data for that season
+totalError = 0                           # total error over all the runs of the k-fold cross-validation
+seasons    = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R"]
 
-# initialize, train, then test the data
-pcn = Perceptron(NCAAdata[:, 0:4], NCAAdata[:, 4:])
-pcn.Train(NCAAdata[:, 0:4], NCAAdata[:, 4:], 0.25, 10)
-pcn.ConfusionMatrix(testData[:, 0:4], testData[:, 4:])
+# k-fold cross-validation, where every season is used as the testing data once
+for i in seasons:
+    print "Run with season {0} as the test season".format(i)
+
+    trainData, testData = GetTrainAndTestData(seasonData, i)
+
+    # initialize, train, then test the data
+    pcn = Perceptron(trainData[:, 0:4], trainData[:, 4:])
+    pcn.Train(trainData[:, 0:4], trainData[:, 4:], 0.1, 1000)
+    totalError += pcn.ConfusionMatrix(testData[:, 0:4], testData[:, 4:])
+
+print "Average error over the k-fold cross-validation:"
+print totalError / float(len(seasons))
