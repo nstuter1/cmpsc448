@@ -12,6 +12,7 @@
 # Date:        February 2014
 
 from random import randint
+from random import shuffle
 from numpy import *
 import csv
 
@@ -51,12 +52,12 @@ class Perceptron:
         change = range(self.nData)
 
         for n in range(numIterations):
-            self.outputs = self.Forward(inputs);
+            self.outputs  = self.Forward(inputs);
             self.weights += learnRate * dot(transpose(inputs), targets-self.outputs)
         
             # Randomise order of inputs
             random.shuffle(change)
-            inputs = inputs[change, :]
+            inputs  = inputs[change, :]
             targets = targets[change, :]
             
         #return self.weights
@@ -74,7 +75,10 @@ class Perceptron:
     #
     # inputs  [in] - an array (matrix) of all the testing data; each row is an instance of the features
     # targets [in] - the results that the perceptron should get
-    def ConfusionMatrix(self, inputs, targets):
+    # verbose [in] - boolean; true when output on the confusion matrix and error should be printed
+    #
+    # return - the error over the testing data
+    def ConfusionMatrix(self, inputs, targets, verbose):
         # Add the inputs that match the bias node
         inputs = concatenate(( inputs, -ones((shape(inputs)[0], 1)) ), axis=1)
         
@@ -95,10 +99,11 @@ class Perceptron:
             for j in range(nClasses):
                 cm[i, j] = sum(where(outputs == i, 1, 0) * where(targets == j, 1, 0))
 
-        print "Confusion Matrix:"
-        print cm
-        print "Error:"
-        print "{0}\n".format(trace(cm) / sum(cm))
+        if verbose:
+            print "Confusion Matrix:"
+            print cm
+            print "Error:"
+            print "{0}".format(trace(cm) / sum(cm))
 
         return trace(cm) / sum(cm)
         
@@ -156,6 +161,22 @@ def GetTrainAndTestData(data, testSeason):
 
     return trainData, testData
 
+# initialize, train, then test the data
+#
+# trainData [in] - the data to train on
+# testData  [in] - the data to test on
+# learnRate [in] - the rate that the perceptron should learn
+# numTrains [in] - the number of times to train the perceptron on trainData
+# verbose   [in] - boolean; true when output on the confusion matrix and error should be printed
+#
+# return - the error of the perceptron on testData
+def RunPerceptron(trainData, testData, learnRate, numTrains, verbose):
+    targetCol = trainData.shape[1] - 1     # the column of the data that holds the target
+
+    pcn = Perceptron(trainData[:, 0:targetCol], trainData[:, targetCol:])
+    pcn.Train(trainData[:, 0:targetCol], trainData[:, targetCol:], learnRate, numTrains)
+    return pcn.ConfusionMatrix(testData[:, 0:targetCol], testData[:, targetCol:], verbose)
+
 
 # Example with AND and XOR logic functions
 """
@@ -176,29 +197,56 @@ q.ConfusionMatrix(a[:, 0:2], b[:, 2:])
 # main() code goes here
 #######################
 
+# set to true if you want to use the permutation test
+usePermute = False
+
 seasonData = GetData("NCAAdata.csv")    # dictionary indexed by season letter; each season is a matrix
                                         #   of the data for that season
 learnRate  = 0.1                        # learning rate of the perceptron
 numTrains  = 1000                       # number of times to run through the training data
+numPermute = 1000                       # number of times to run permutation test
 totalError = 0                          # total error over all the runs of the k-fold cross-validation
-numBetter  = 0                          # number of times permutation test did better than the original
-numPermute = 10000                      # number of times to run permutation test
+totalPValue = 0.0                       # total p-value over every run of the permutation test
 seasons    = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R"]
 
 # k-fold cross-validation, where every season is used as the testing data once
 for i in seasons:
-    print "Run with season {0} as the test season".format(i)
+    print "\nRun with season {0} as the test season".format(i)
 
     trainData, testData = GetTrainAndTestData(seasonData, i)
 
     # initialize, train, then test the data
-    pcn = Perceptron(trainData[:, 0:4], trainData[:, 4:])
-    pcn.Train(trainData[:, 0:4], trainData[:, 4:], learnRate, numTrains)
-    totalError += pcn.ConfusionMatrix(testData[:, 0:4], testData[:, 4:])
+    origError   = RunPerceptron(testData, testData, learnRate, numTrains, True)
+    totalError += origError
 
     # run permutation test, where we permute target data and compare the error to the real perceptron
-    for j in range(numPermute):
-        break
+    if usePermute:
+        numBetter = 0                   # number of times permutation test did better than the original
 
-print "Average error over the k-fold cross-validation:"
+        print "Running permutation test and calculating p-value..."
+
+        # permute the target column, run the perceptron, and keep track of every time the permutation
+        #   does better than the original data
+        for j in range(numPermute):
+            # permute the target column of the training and testing data
+            shuffle(trainData[:, 4])
+            shuffle(testData[:, 4])
+
+            error = RunPerceptron(testData, testData, learnRate, numTrains, False)
+
+            # track if permutation did better than the original data
+            if error >= origError:
+                numBetter += 1
+
+        # calculat the p-value
+        pValue       = numBetter / float(numPermute)
+        totalPValue += pValue
+
+        print "p-value = {0}".format(pValue)
+
+print "\nAverage error over the k-fold cross-validation:"
 print totalError / float(len(seasons))
+
+if usePermute:
+    print "Average p-value over the k-fold cross-validation:"
+    print totalPValue / float(len(seasons))
