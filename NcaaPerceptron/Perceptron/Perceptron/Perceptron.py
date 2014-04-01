@@ -176,9 +176,13 @@ q.ConfusionMatrix(a[:, 0:2], b[:, 2:])
 # main() code goes here
 #######################
 
-seasonData = GetData("NCAAdata.csv")     # dictionary indexed by season letter; each season is a matrix
-                                         #   of the data for that season
-totalError = 0                           # total error over all the runs of the k-fold cross-validation
+seasonData = GetData("NCAAdata.csv")    # dictionary indexed by season letter; each season is a matrix
+                                        #   of the data for that season
+learnRate  = 0.1                        # learning rate of the perceptron
+numTrains  = 1000                       # number of times to run through the training data
+totalError = 0                          # total error over all the runs of the k-fold cross-validation
+numBetter  = 0                          # number of times permutation test did better than the original
+numPermute = 10000                      # number of times to run permutation test
 seasons    = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R"]
 
 # k-fold cross-validation, where every season is used as the testing data once
@@ -189,8 +193,12 @@ for i in seasons:
 
     # initialize, train, then test the data
     pcn = Perceptron(trainData[:, 0:4], trainData[:, 4:])
-    pcn.Train(trainData[:, 0:4], trainData[:, 4:], 0.1, 1000)
+    pcn.Train(trainData[:, 0:4], trainData[:, 4:], learnRate, numTrains)
     totalError += pcn.ConfusionMatrix(testData[:, 0:4], testData[:, 4:])
+
+    # run permutation test, where we permute target data and compare the error to the real perceptron
+    for j in range(numPermute):
+        break
 
 print "Average error over the k-fold cross-validation:"
 print totalError / float(len(seasons))
