@@ -40,18 +40,26 @@ class Perceptron:
 
     # trains the model based on the inputs and targets
     #
-    # inputs        [in] - an array (matrix) of all the input data; each row is an instance of features
-    # targets       [in] - the results that the perceptron should get
-    # learnRate     [in] - the degree which weights should change on training
-    # numIterations [in] - number of times to train the model on inputs
-    def Train(self, inputs, targets, learnRate, numIterations):
+    # inputs         [in] - array (matrix) of all the input data; each row is an instance of features
+    # targets        [in] - the results that the perceptron should get
+    # initLearnRate  [in] - initial learning rate of the perceptron
+    # tuningConstant [in] - constant for deciding learning rate over time
+    # numIterations  [in] - number of times to train the model on inputs
+    def Train(self, inputs, targets, initLearnRate, tuningConstant, numIterations):
         # Add the inputs that match the bias node
         inputs = concatenate(( inputs, -ones((self.nData, 1)) ), axis=1)
 
         # Training
         change = range(self.nData)
 
+        # initialize the learning rate
+        learnRate = initLearnRate
+
         for n in range(numIterations):
+            # decrease learning rate over time after the 1000th iteration
+            if n > 1000:
+                learnRate = tuningConstant / float(n)
+
             self.outputs  = self.Forward(inputs);
             self.weights += learnRate * dot(transpose(inputs), targets-self.outputs)
         
@@ -163,18 +171,20 @@ def GetTrainAndTestData(data, testSeason):
 
 # initialize, train, then test the data
 #
-# trainData [in] - the data to train on
-# testData  [in] - the data to test on
-# learnRate [in] - the rate that the perceptron should learn
-# numTrains [in] - the number of times to train the perceptron on trainData
-# verbose   [in] - boolean; true when output on the confusion matrix and error should be printed
+# trainData      [in] - the data to train on
+# testData       [in] - the data to test on
+# initLearnRate  [in] - initial learning rate of the perceptron
+# tuningConstant [in] - constant for deciding learning rate over time
+# numTrains      [in] - the number of times to train the perceptron on trainData
+# verbose        [in] - boolean; true when output on the confusion matrix and error should be printed
 #
 # return - the error of the perceptron on testData
-def RunPerceptron(trainData, testData, learnRate, numTrains, verbose):
+def RunPerceptron(trainData, testData, initLearnRate, tuningConstant, numTrains, verbose):
     targetCol = trainData.shape[1] - 1     # the column of the data that holds the target
 
     pcn = Perceptron(trainData[:, 0:targetCol], trainData[:, targetCol:])
-    pcn.Train(trainData[:, 0:targetCol], trainData[:, targetCol:], learnRate, numTrains)
+    pcn.Train(trainData[:, 0:targetCol], trainData[:, targetCol:], initLearnRate, tuningConstant,
+                                                                                        numTrains)
     return pcn.ConfusionMatrix(testData[:, 0:targetCol], testData[:, targetCol:], verbose)
 
 
@@ -202,11 +212,12 @@ usePermute = False
 
 seasonData = GetData("NCAAdata.csv")    # dictionary indexed by season letter; each season is a matrix
                                         #   of the data for that season
-learnRate  = 0.1                        # learning rate of the perceptron
-numTrains  = 1000                       # number of times to run through the training data
-numPermute = 1000                       # number of times to run permutation test
-totalError = 0                          # total error over all the runs of the k-fold cross-validation
-totalPValue = 0.0                       # total p-value over every run of the permutation test
+initLearnRate  = 0.1                    # initial learning rate of the perceptron
+tuningConstant = 100                    # constant for deciding learning rate over time
+numTrains      = 10000                  # number of times to run through the training data
+numPermute     = 1000                   # number of times to run permutation test
+totalError     = 0                      # total error over all the runs of the k-fold cross-validation
+totalPValue    = 0.0                    # total p-value over every run of the permutation test
 seasons    = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R"]
 
 # k-fold cross-validation, where every season is used as the testing data once
@@ -216,7 +227,7 @@ for i in seasons:
     trainData, testData = GetTrainAndTestData(seasonData, i)
 
     # initialize, train, then test the data
-    origError   = RunPerceptron(testData, testData, learnRate, numTrains, True)
+    origError   = RunPerceptron(testData, testData, initLearnRate, tuningConstant, numTrains, True)
     totalError += origError
 
     # run permutation test, where we permute target data and compare the error to the real perceptron
@@ -232,7 +243,7 @@ for i in seasons:
             shuffle(trainData[:, 4])
             shuffle(testData[:, 4])
 
-            error = RunPerceptron(testData, testData, learnRate, numTrains, False)
+            error = RunPerceptron(testData, testData, initLearnRate, tuningConstant, numTrains, False)
 
             # track if permutation did better than the original data
             if error >= origError:
