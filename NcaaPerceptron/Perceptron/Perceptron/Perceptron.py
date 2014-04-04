@@ -16,6 +16,7 @@ from random import shuffle
 from numpy import *
 import csv
 
+# Perceptron ------------------------------------------------------------------------------------------
 class Perceptron:
     # the constructor to initialize the weights and set up the perceptron
     #
@@ -83,9 +84,9 @@ class Perceptron:
     #
     # inputs  [in] - an array (matrix) of all the testing data; each row is an instance of the features
     # targets [in] - the results that the perceptron should get
-    # verbose [in] - boolean; true when output on the confusion matrix and error should be printed
+    # verbose [in] - boolean; true when output on the confusion matrix and accuracy should be printed
     #
-    # return - the error over the testing data
+    # return - the accuracy over the testing data
     def ConfusionMatrix(self, inputs, targets, verbose):
         # Add the inputs that match the bias node
         inputs = concatenate(( inputs, -ones((shape(inputs)[0], 1)) ), axis=1)
@@ -110,11 +111,91 @@ class Perceptron:
         if verbose:
             print "Confusion Matrix:"
             print cm
-            print "Error:"
+            print "Accuracy:"
             print "{0}".format(trace(cm) / sum(cm))
 
         return trace(cm) / sum(cm)
         
+# RegressionModel -------------------------------------------------------------------------------------
+class RegressionModel:
+    # constructor to initialize the weights and get the number of records in the data
+    #
+    # inputs [in] - the input training data
+    def __init__(self, inputs):
+        self.numRecords = shape(inputs)[0]
+        self.weights    = random.rand( shape(inputs)[1], 1 ) * 0.1 - 0.05
+
+    # calculate the gradient over a batch of the inputs
+    #
+    # batch   [in] - portion of records to calculate the gradient over
+    # targets [in] - the target of each record
+    #
+    # return - the gradient over batch
+    def MiniBatchGradient(self, batch, targets):
+        temp  = targets - dot(batch, self.weights)  # calc of paranthesis part of least squares
+        temp2 = dot(batch.T, temp)                  # equivalent to multiplying temp across the rows of
+                                                    #   batch and summing over the records
+
+        #  divide by the # of records and multiply by -2 to complete the gradient
+        return -2 * temp2 / self.numRecords
+
+    # perform weight updates using the gradient of portions of inputs, and repeat the process for
+    #   numIterations
+    #
+    # inputs         [in] - array (matrix) of all the input data; each row is an instance of features
+    # targets        [in] - the results that the model should get
+    # initLearnRate  [in] - initial learning rate of the model
+    # tuningConstant [in] - constant for deciding learning rate over time
+    # numIterations  [in] - number of times to train the model on inputs
+    def GradientDescent(self, inputs, targets, initLearnRate, tuningConstant, numIterations):
+        change = range(self.numRecords)     # array of indexes to inputs and targets to be shuffled to
+                                            #   rearrange the order of the records
+
+        learnRate = initLearnRate           # initialize the learning rate
+
+        # update the weights based on the learning rate and the calculation the gradient over 10
+        #   records at a time; permute the records and repeat for numIterations
+        for i in range(numIterations):
+            # decrease learning rate over time after the 1000th iteration
+            if i > 1000:
+                learnRate = tuningConstant / float(n)
+ 
+            # update the weights by the gradient of 10 records at a time
+            for n in range(10, self.numRecords, 10):
+                if n + 10 <= self.numRecords:
+                    self.weights -= learnRate * self.MiniBatchGradient(inputs[n-10:n, :],
+                                                                      targets[n-10:n, :])
+                else:   # combine the last few records together if there won't be an even 10 at the end
+                    self.weights -= learnRate * self.MiniBatchGradient(inputs[n-10:self.numRecords, :],
+                                                                      targets[n-10:self.numRecords, :])
+
+            # Randomise order of the records in inputs
+            random.shuffle(change)
+            inputs  = inputs[change, :]
+            targets = targets[change, :]
+
+        #return self.weights
+
+    # test the model on testing data and calculate the accuracy
+    #
+    # inputs  [in] - array (matrix) of all the input test data; each row is an instance of features
+    # targets [in] - the results that the model should get
+    # verbose [in] - boolean; true when output of accuracy should be printed
+    #
+    # return - the accuracy over the testing data
+    def TestModel(self, inputs, targets, verbose):
+        temp     = targets - dot(inputs, self.weights)   # calc of paranthesis part of least squares
+        temp     = square(temp)                          # calculate the square of the paranthesis
+        accuracy = 1 - (sum(temp, axis=0) / targets.shape[0])[0] # sum temp and divide by # of records;
+                                                                 #   subtract from one for accuracy
+
+        if verbose:
+            print "Accuracy:"
+            print "{0}".format(accuracy)
+
+        return accuracy
+
+# Global Functions-------------------------------------------------------------------------------------
 
 # read in the data from file and separate it into a dictionary of matrices of the data for each season
 #
@@ -169,16 +250,16 @@ def GetTrainAndTestData(data, testSeason):
 
     return trainData, testData
 
-# initialize, train, then test the data
+# initialize, train, then test the data using a perceptron
 #
 # trainData      [in] - the data to train on
 # testData       [in] - the data to test on
 # initLearnRate  [in] - initial learning rate of the perceptron
 # tuningConstant [in] - constant for deciding learning rate over time
 # numTrains      [in] - the number of times to train the perceptron on trainData
-# verbose        [in] - boolean; true when output on the confusion matrix and error should be printed
+# verbose        [in] - boolean; true when output of confusion matrix and accuracy should be printed
 #
-# return - the error of the perceptron on testData
+# return - the accuracy of the perceptron on testData
 def RunPerceptron(trainData, testData, initLearnRate, tuningConstant, numTrains, verbose):
     targetCol = trainData.shape[1] - 1     # the column of the data that holds the target
 
@@ -187,28 +268,31 @@ def RunPerceptron(trainData, testData, initLearnRate, tuningConstant, numTrains,
                                                                                         numTrains)
     return pcn.ConfusionMatrix(testData[:, 0:targetCol], testData[:, targetCol:], verbose)
 
+# initialize, train, then test the data using a regression model
+#
+# trainData      [in] - the data to train on
+# testData       [in] - the data to test on
+# initLearnRate  [in] - initial learning rate of the perceptron
+# tuningConstant [in] - constant for deciding learning rate over time
+# numTrains      [in] - the number of times to train the perceptron on trainData
+# verbose        [in] - boolean; true when output of accuracy should be printed
+#
+# return - the accuracy of the perceptron on testData
+def RunRegression(trainData, testData, initLearnRate, tuningConstant, numTrains, verbose):
+    targetCol = trainData.shape[1] - 1     # the column of the data that holds the target
 
-# Example with AND and XOR logic functions
-"""
-a = array([[0, 0, 0], [0, 1, 0], [1, 0, 0], [1, 1, 1]])
-b = array([[0, 0, 0], [0, 1, 1], [1, 0, 1], [1, 1, 0]])
+    reg = RegressionModel(trainData[:, 0:targetCol])
+    reg.GradientDescent(trainData[:, 0:targetCol], trainData[:, targetCol:], initLearnRate,
+                                                                  tuningConstant, numTrains)
+    return reg.TestModel(testData[:, 0:targetCol], testData[:, targetCol:], verbose)
 
-p = self.Perceptron(a[:, 0:2], a[:, 2:])
-p.Train(a[:, 0:2], a[:, 2:], 0.25, 10)
-p.ConfusionMatrix(a[:, 0:2], a[:, 2:])
-
-q = self.Perceptron(a[:, 0:2], b[:, 2:])
-q.Train(a[:, 0:2], b[:, 2:], 0.25, 10)
-q.ConfusionMatrix(a[:, 0:2], b[:, 2:])
-"""
-
-
-#######################
-# main() code goes here
-#######################
+# main() ----------------------------------------------------------------------------------------------
 
 # set to true if you want to use the permutation test
 usePermute = False
+
+# set to true if you want to use regression with gradient descent
+useRegression = True
 
 seasonData = GetData("NCAAdata.csv")    # dictionary indexed by season letter; each season is a matrix
                                         #   of the data for that season
@@ -216,9 +300,14 @@ initLearnRate  = 0.1                    # initial learning rate of the perceptro
 tuningConstant = 100                    # constant for deciding learning rate over time
 numTrains      = 10000                  # number of times to run through the training data
 numPermute     = 1000                   # number of times to run permutation test
-totalError     = 0                      # total error over all the runs of the k-fold cross-validation
+totalAccuracy  = 0.0                    # total accuracy over all the runs of k-fold cross-validation
 totalPValue    = 0.0                    # total p-value over every run of the permutation test
-seasons    = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R"]
+seasons = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R"]
+
+if useRegression:
+    print "Using a regression model with gradient descent:"
+else:
+    print "Using a perceptron model:"
 
 # k-fold cross-validation, where every season is used as the testing data once
 for i in seasons:
@@ -227,26 +316,37 @@ for i in seasons:
     trainData, testData = GetTrainAndTestData(seasonData, i)
 
     # initialize, train, then test the data
-    origError   = RunPerceptron(testData, testData, initLearnRate, tuningConstant, numTrains, True)
-    totalError += origError
+    if useRegression:
+        origAccuracy = RunRegression(trainData, testData, initLearnRate, tuningConstant, numTrains,
+                                                                                               True)
+    else:
+        origAccuracy = RunPerceptron(trainData, testData, initLearnRate, tuningConstant, numTrains,
+                                                                                               True)
 
-    # run permutation test, where we permute target data and compare the error to the real perceptron
+    totalAccuracy += origAccuracy
+
+    # run permutation test, where we permute target data and compare accuracy to the real model
     if usePermute:
         numBetter = 0                   # number of times permutation test did better than the original
 
         print "Running permutation test and calculating p-value..."
 
-        # permute the target column, run the perceptron, and keep track of every time the permutation
+        # permute the target column, run the model, and keep track of every time the permutation
         #   does better than the original data
         for j in range(numPermute):
             # permute the target column of the training and testing data
             shuffle(trainData[:, 4])
             shuffle(testData[:, 4])
 
-            error = RunPerceptron(testData, testData, initLearnRate, tuningConstant, numTrains, False)
+            if useRegression:
+                accuracy = RunRegression(trainData, testData, initLearnRate, tuningConstant, numTrains,
+                                                                                                 False)
+            else:
+                accuracy = RunPerceptron(trainData, testData, initLearnRate, tuningConstant, numTrains,
+                                                                                                 False)
 
             # track if permutation did better than the original data
-            if error >= origError:
+            if accuracy >= origAccuracy:
                 numBetter += 1
 
         # calculat the p-value
@@ -255,8 +355,8 @@ for i in seasons:
 
         print "p-value = {0}".format(pValue)
 
-print "\nAverage error over the k-fold cross-validation:"
-print totalError / float(len(seasons))
+print "\nAverage accuracy over the k-fold cross-validation:"
+print totalAccuracy / float(len(seasons))
 
 if usePermute:
     print "Average p-value over the k-fold cross-validation:"
