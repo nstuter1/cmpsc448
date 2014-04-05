@@ -148,10 +148,11 @@ class RegressionModel:
     # tuningConstant [in] - constant for deciding learning rate over time
     # numIterations  [in] - number of times to train the model on inputs
     def GradientDescent(self, inputs, targets, initLearnRate, tuningConstant, numIterations):
-        change = range(self.numRecords)     # array of indexes to inputs and targets to be shuffled to
-                                            #   rearrange the order of the records
+        batchSize = 10                       # size of batches to run the gradient on
+        change    = range(self.numRecords)   # array of indexes to inputs and targets to be shuffled to
+                                             #   rearrange the order of the records
 
-        learnRate = initLearnRate           # initialize the learning rate
+        learnRate = initLearnRate            # initialize the learning rate
 
         # update the weights based on the learning rate and the calculation the gradient over 10
         #   records at a time; permute the records and repeat for numIterations
@@ -161,13 +162,14 @@ class RegressionModel:
                 learnRate = tuningConstant / float(n)
  
             # update the weights by the gradient of 10 records at a time
-            for n in range(10, self.numRecords, 10):
-                if n + 10 <= self.numRecords:
-                    self.weights -= learnRate * self.MiniBatchGradient(inputs[n-10:n, :],
-                                                                      targets[n-10:n, :])
-                else:   # combine the last few records together if there won't be an even 10 at the end
-                    self.weights -= learnRate * self.MiniBatchGradient(inputs[n-10:self.numRecords, :],
-                                                                      targets[n-10:self.numRecords, :])
+            for n in range(batchSize, self.numRecords, batchSize):
+                if n + batchSize <= self.numRecords:
+                    self.weights -= learnRate * self.MiniBatchGradient(inputs[n-batchSize:n, :],
+                                                                      targets[n-batchSize:n, :])
+                else:# combine last few records together if there won't be an even batchSize at the end
+                    self.weights -= learnRate * self.MiniBatchGradient(
+                                                                inputs[n-batchSize:self.numRecords, :],
+                                                               targets[n-batchSize:self.numRecords, :])
 
             # Randomise order of the records in inputs
             random.shuffle(change)
