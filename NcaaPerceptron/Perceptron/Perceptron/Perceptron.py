@@ -215,11 +215,11 @@ def GetData(file):
 
         # swap columns based on swapColumns
         if not swapColumns:
-            newRow = array([[float(row["Winrate"]), int(row["Seed"]), float(row["Winrate2"]),
-                                                                           int(row["Seed2"]), 1]])
+            newRow = array([[float(row["Winrate"]), int(row["Seed"]), float(row["Oppwinrate"]),
+                             float(row["Winrate2"]), int(row["Seed2"]), float(row["Oppwinrate2"]), 1]])
         else:
-            newRow = array([[float(row["Winrate2"]), int(row["Seed2"]), float(row["Winrate"]),
-                                                                             int(row["Seed"]), 0]])
+            newRow = array([[float(row["Winrate2"]), int(row["Seed2"]), float(row["Oppwinrate2"]),
+                             float(row["Winrate"]), int(row["Seed"]), float(row["Oppwinrate"]), 0]])
 
         # add newRow to seasonData based on the season the row pertains to
         if row["season"] not in seasonData:
