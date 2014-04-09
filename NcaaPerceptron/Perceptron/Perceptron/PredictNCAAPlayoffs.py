@@ -70,7 +70,7 @@ def GetTrainAndTestData(data, testSeason):
 usePermute = False
 
 # set to true if you want to use regression with gradient descent
-useRegression = False
+useRegression = True
 
 seasonData = GetData("NCAAdata.csv")    # dictionary indexed by season letter; each season is a matrix
                                         #   of the data for that season

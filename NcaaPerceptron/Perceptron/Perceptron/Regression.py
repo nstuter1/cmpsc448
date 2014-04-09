@@ -80,10 +80,43 @@ class RegressionModel:
                                                                  #   subtract from one for accuracy
 
         if verbose:
-            print "Accuracy:"
+            print "Least-Square-Error Accuracy:"
             print "{0}".format(accuracy)
 
         return accuracy
+
+    # creates the confusion matrix based on the testing data
+    #
+    # inputs  [in] - an array (matrix) of all the testing data; each row is an instance of the features
+    # targets [in] - the results that the perceptron should get
+    # verbose [in] - boolean; true when output on the confusion matrix and accuracy should be printed
+    #
+    # return - the accuracy over the testing data
+    def ConfusionMatrix(self, inputs, targets, verbose):
+        outputs = dot(inputs, self.weights)
+    
+        nClasses = shape(targets)[1]
+
+        if nClasses == 1:
+            nClasses = 2
+            outputs = where(outputs > 0.5, 1, 0)
+        else:
+            # 1-of-N encoding
+            outputs = argmax(outputs, 1)
+            targets = argmax(targets, 1)
+
+        cm = zeros((nClasses, nClasses))
+        for i in range(nClasses):
+            for j in range(nClasses):
+                cm[i, j] = sum(where(outputs == i, 1, 0) * where(targets == j, 1, 0))
+
+        if verbose:
+            print "Confusion Matrix:"
+            print cm
+            print "Confusion Matrix Accuracy:"
+            print "{0}".format(trace(cm) / sum(cm))
+
+        return trace(cm) / sum(cm)
 
 # initialize, train, then test the data using a regression model
 #
@@ -101,4 +134,5 @@ def RunRegression(trainData, testData, initLearnRate, tuningConstant, numTrains,
     reg = RegressionModel(trainData[:, 0:targetCol])
     reg.GradientDescent(trainData[:, 0:targetCol], trainData[:, targetCol:], initLearnRate,
                                                                   tuningConstant, numTrains)
+    reg.ConfusionMatrix(testData[:, 0:targetCol], testData[:, targetCol:], verbose)
     return reg.TestModel(testData[:, 0:targetCol], testData[:, targetCol:], verbose)
