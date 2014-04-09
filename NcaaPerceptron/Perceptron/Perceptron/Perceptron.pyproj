@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>152aca45-57df-4a7f-accf-cac56937658c</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>Perceptron.py</StartupFile>
+    <StartupFile>PredictNCAAPlayoffs.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -23,6 +23,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Perceptron.py" />
+    <Compile Include="PredictNCAAPlayoffs.py" />
+    <Compile Include="Regression.py" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.Common.targets" />
 </Project>
