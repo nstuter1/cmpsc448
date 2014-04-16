@@ -45,6 +45,7 @@ class RegressionModel:
         # update the weights based on the learning rate and the calculation the gradient over 10
         #   records at a time; permute the records and repeat for numIterations
         for i in range(numIterations):
+            
             # decrease learning rate over time after the 1000th iteration
             if i > 1000:
                 learnRate = tuningConstant / float(n)
