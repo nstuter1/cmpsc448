@@ -5,8 +5,6 @@ from Regression import *
 
 data = np.loadtxt('clean_data.csv', delimiter = ',')    # getting the clean data from the file
 
-print data
-
 for x in data:                                          # data says how much it defaults
     if x[9] != 0:                                       # we just want whether it defaults
         x[9] = 1                                        # 0 if no default, 1 if default
